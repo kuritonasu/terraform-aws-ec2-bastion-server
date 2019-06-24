@@ -49,14 +49,14 @@ resource "aws_security_group" "default" {
     from_port = 22
     to_port   = 22
 
-    cidr_blocks = ["${var.allowed_cidr_blocks}"]
+    cidr_blocks = "${var.allowed_cidr_blocks}"
   }
 
   ingress {
     from_port       = 0
     to_port         = 0
     protocol        = -1
-    security_groups = ["${var.security_groups}"]
+    security_groups = "${var.security_groups}"
   }
 
   lifecycle {
@@ -72,7 +72,7 @@ data "aws_route53_zone" "domain" {
 data "template_file" "user_data" {
   template = "${file("${path.module}/user_data.sh")}"
 
-  vars {
+  vars = {
     user_data       = "${join("\n", var.user_data)}"
     welcome_message = "${var.stage}"
     hostname        = "${var.name}.${join("",data.aws_route53_zone.domain.*.name)}"
@@ -87,9 +87,7 @@ resource "aws_instance" "default" {
 
   user_data = "${data.template_file.user_data.rendered}"
 
-  vpc_security_group_ids = [
-    "${compact(concat(list(aws_security_group.default.id), var.security_groups))}",
-  ]
+  vpc_security_group_ids = "${compact(concat(list(aws_security_group.default.id), var.security_groups))}"
 
   iam_instance_profile        = "${aws_iam_instance_profile.default.name}"
   associate_public_ip_address = "true"
@@ -103,7 +101,7 @@ resource "aws_instance" "default" {
 
 module "dns" {
   enabled   = "${var.zone_id != "" ? true : false }"
-  source    = "git::https://github.com/cloudposse/terraform-aws-route53-cluster-hostname.git?ref=tags/0.2.5"
+  source    = "git@github.com:kuritonasu/terraform-aws-route53-cluster-hostname.git"
   namespace = "${var.namespace}"
   name      = "${var.name}"
   stage     = "${var.stage}"
